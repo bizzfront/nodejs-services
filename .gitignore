@@ -1,0 +1,14 @@
+# Environment files
+# (tracked to simplify IIS deployment configuration)
+
+
+/google-spreadsheets-reader/node-modules/*
+
+# Archivos grandes
+*.zip
+*.psd
+*.tiff
+*.mov
+*.mp4
+*.gguf
+*.rar
