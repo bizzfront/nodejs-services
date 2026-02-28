@@ -2,7 +2,7 @@
 # (tracked to simplify IIS deployment configuration)
 
 
-/google-spreadsheets-reader/node-modules/*
+/google-spreadsheets-reader/node_modules/*
 
 # Archivos grandes
 *.zip
