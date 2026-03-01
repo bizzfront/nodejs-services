@@ -2,7 +2,7 @@
 # (tracked to simplify IIS deployment configuration)
 
 
-/google-spreadsheets-reader/node_modules/*
+/google-spreadsheets-reader-chatgptbot009/node_modules/*
 
 # Archivos grandes
 *.zip
