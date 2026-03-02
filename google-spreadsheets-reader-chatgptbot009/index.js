@@ -25,6 +25,7 @@ app.use(express.json());
 
 const {
   PORT = "3000",
+  HOST = 'http://localhost',
   SPREADSHEET_ID,
   DEFAULT_SHEET_AGENDA = "Agenda_Citas",
   DEFAULT_SHEET_VIH = "Horario_VIH",
@@ -445,6 +446,6 @@ app.get("/v1/fundase", async (req, res) => {
   }
 });
 
-app.listen(Number(PORT), () => {
+app.listen(Number(PORT, HOST), () => {
   console.log(`FUNDASE private backend running on http://localhost:${PORT}`);
 });
