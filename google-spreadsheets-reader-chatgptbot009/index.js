@@ -51,15 +51,22 @@ const MAX_COLS_N = Math.max(1, Number(MAX_COLS));
 
 /** -------- Private auth -------- */
 function authMiddleware(req, res, next) {
+  console.log("authMiddleware: Enter");
   // si quieres health público, descomenta:
   // if (req.path === "/health") return next();
 
-  if (!PRIVATE_API_KEY) return next();
+  if (!PRIVATE_API_KEY) {
+    console.log("authMiddleware: No PRIVATE_API_KEY set, skipping auth");
+    return next();
+  }
 
   const provided = req.header("x-api-key");
+  console.log(`authMiddleware: Provided x-api-key: ${provided}`);
   if (!provided || provided !== PRIVATE_API_KEY) {
+    console.error("authMiddleware: Unauthorized access");
     return res.status(401).json({ error: "Unauthorized" });
   }
+  console.log("authMiddleware: Authorized");
   return next();
 }
 app.use(authMiddleware);
