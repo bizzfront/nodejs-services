@@ -6,7 +6,7 @@
  *
  * Opcional:
  *  - time: HH:MM or HH:MM AM/PM (solo afecta agenda y vih)
- *  - col: nombre exacto del header de la columna a filtrar
+ *  - col: uno o varios headers exactos separados por | o , (ej: Médico|Especialidad)
  *  - like: patrón tipo SQL LIKE (soporta % como wildcard)
  *  - caseSensitive: true|false (default false)
  *  - fields: lista de headers a devolver (comma-separated)
@@ -221,7 +221,15 @@ function likeToRegex(likePattern, { caseSensitive }) {
 }
 
 
-function applyLikeFilter(rows, colName, likePattern, opts) {
+function parseCols(colParam) {
+  if (!colParam) return [];
+  return String(colParam)
+    .split(/[|,]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function applyLikeFilter(rows, colNames, likePattern, opts) {
   const { caseSensitive, accentSensitive } = opts;
 
   const rx = likeToRegex(
@@ -230,16 +238,12 @@ function applyLikeFilter(rows, colName, likePattern, opts) {
     { caseSensitive }
   );
 
-  // Para hacer accent-insensitive, normalizamos ambos lados:
-  // - normalizamos el valor de celda
-  // - normalizamos el patrón, pero como el patrón se convierte a regex,
-  //   lo más simple es normalizar SOLO el valor y mantener el regex en case-insensitive.
-  // Si quieres 100% robusto con acentos + regex, hacemos match por includes (abajo doy variante).
-  return rows.filter((r) => {
+  // OR entre columnas: si alguna columna hace match, la fila queda.
+  return rows.filter((r) => colNames.some((colName) => {
     const cell = normalizeText(r[colName], { caseSensitive, accentSensitive });
     // si caseSensitive=false, rx ya trae /i, pero cell ya está lower; no pasa nada.
     return rx.test(cell);
-  });
+  }));
 }
 
 async function getHeaders(sheets, sheetName) {
@@ -323,11 +327,12 @@ app.get("/v1/fundase", async (req, res) => {
     }
 
     // LIKE filter params
-    const col = req.query.col ? String(req.query.col) : "";
+    const colRaw = req.query.col ? String(req.query.col) : "";
+    const cols = parseCols(colRaw);
     const like = req.query.like ? String(req.query.like) : "";
 
     // If one is provided, both must be provided
-    if ((col && !like) || (!col && like)) {
+    if ((cols.length && !like) || (!cols.length && like)) {
       return res.status(400).json({
         error: "LIKE filter requires both 'col' and 'like'",
         example: "module=agenda&time=08:00&col=Médico&like=%López%",
@@ -342,7 +347,7 @@ app.get("/v1/fundase", async (req, res) => {
       module,
       sheetName,
       time: timeNorm,
-      col,
+      cols,
       like,
       caseSensitive,
       fields,
@@ -360,7 +365,7 @@ app.get("/v1/fundase", async (req, res) => {
         module,
         sheet: sheetName,
         time: timeNorm,
-        likeFilter: col ? { col, like, caseSensitive } : null,
+        likeFilter: cols.length ? { cols, like, caseSensitive } : null,
         fields: fields.length ? fields : null,
         count: 0,
         rows: [],
@@ -370,15 +375,16 @@ app.get("/v1/fundase", async (req, res) => {
       return res.json({ ...out, cache: "MISS" });
     }
 
-    // Validate column exists if using LIKE
-    if (col) {
-      const exists = headers.some((h) => h === col);
-      if (!exists) {
+    // Validate columns exist if using LIKE
+    if (cols.length) {
+      const missingCols = cols.filter((col) => !headers.some((h) => h === col));
+      if (missingCols.length) {
         return res.status(400).json({
           error: "Column not found",
-          col,
+          col: colRaw,
+          missingCols,
           headers,
-          hint: "col must match EXACTLY a header name in the sheet.",
+          hint: "col must match EXACTLY one or more header names in the sheet. Use | or , to separate multiple columns.",
         });
       }
     }
@@ -417,8 +423,8 @@ app.get("/v1/fundase", async (req, res) => {
     }
 
     // ---- optional LIKE filter ----
-    if (col && like) {
-      rows = applyLikeFilter(rows, col, like, caseSensitive);
+    if (cols.length && like) {
+      rows = applyLikeFilter(rows, cols, like, { caseSensitive, accentSensitive: false });
     }
 
     // ---- optional fields projection ----
@@ -431,7 +437,7 @@ app.get("/v1/fundase", async (req, res) => {
       module,
       sheet: sheetName,
       time: timeNorm,
-      likeFilter: col ? { col, like, caseSensitive } : null,
+      likeFilter: cols.length ? { cols, like, caseSensitive } : null,
       fields: fields.length ? fields : null,
       count: rows.length,
       rows,
