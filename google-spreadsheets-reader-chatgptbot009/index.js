@@ -8,6 +8,7 @@
  *  - time: HH:MM or HH:MM AM/PM (solo afecta agenda y vih)
  *  - col: uno o varios headers exactos separados por | o , (ej: Médico|Especialidad)
  *  - like: patrón tipo SQL LIKE (soporta % como wildcard)
+ *          si no incluye %, usa búsqueda inteligente por términos
  *  - caseSensitive: true|false (default false)
  *  - fields: lista de headers a devolver (comma-separated)
  *
@@ -227,6 +228,13 @@ function likeToRegex(likePattern, { caseSensitive }) {
   return new RegExp(regexStr, caseSensitive ? "" : "i");
 }
 
+function splitLikeTerms(likePattern, opts) {
+  return normalizeText(likePattern, opts)
+    .split(" ")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 
 function parseCols(colParam) {
   if (!colParam) return [];
@@ -238,6 +246,21 @@ function parseCols(colParam) {
 
 function applyLikeFilter(rows, colNames, likePattern, opts) {
   const { caseSensitive, accentSensitive } = opts;
+
+  if (!String(likePattern).includes("%")) {
+    const terms = splitLikeTerms(likePattern, { caseSensitive, accentSensitive });
+    if (!terms.length) return rows;
+
+    // Búsqueda inteligente por términos:
+    // cada término debe existir parcialmente en al menos una de las columnas indicadas.
+    return rows.filter((r) => {
+      const normalizedCells = colNames.map((colName) =>
+        normalizeText(r[colName], { caseSensitive, accentSensitive })
+      );
+
+      return terms.every((term) => normalizedCells.some((cell) => cell.includes(term)));
+    });
+  }
 
   const rx = likeToRegex(
     // ojo: likeToRegex ya se ocupa de % y case
