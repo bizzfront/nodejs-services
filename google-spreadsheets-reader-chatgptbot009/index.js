@@ -32,6 +32,7 @@ const {
   DEFAULT_SHEET_MEDICINAS = "Inventario_Medicinas",
   DEFAULT_SHEET_LAB = "Catalogo_Laboratorio",
   DEFAULT_SHEET_PRIORIDAD = "Criterios_Prioridad",
+  DEFAULT_SHEET_SEDES = "Sedes",
   CACHE_TTL_MS = "60000",
   TIME_COLUMN_AGENDA = "Hora",
   TIME_COLUMN_VIH_START = "Hora Inicio",
@@ -168,7 +169,7 @@ function filterFields(rowObj, fieldsList) {
 }
 
 function okModule(module) {
-  return ["agenda", "vih", "medicinas", "laboratorio", "prioridad"].includes(module);
+  return ["agenda", "vih", "medicinas", "laboratorio", "prioridad", "sedes"].includes(module);
 }
 
 function getSheetNameByModule(module) {
@@ -183,6 +184,8 @@ function getSheetNameByModule(module) {
       return DEFAULT_SHEET_LAB;
     case "prioridad":
       return DEFAULT_SHEET_PRIORIDAD;
+    case "sedes":
+      return DEFAULT_SHEET_SEDES;
     default:
       return null;
   }
@@ -297,6 +300,7 @@ app.get("/v1/fundase/modules", (req, res) => {
       medicinas: DEFAULT_SHEET_MEDICINAS,
       laboratorio: DEFAULT_SHEET_LAB,
       prioridad: DEFAULT_SHEET_PRIORIDAD,
+      sedes: DEFAULT_SHEET_SEDES,
     },
   });
 });
@@ -311,13 +315,13 @@ app.get("/v1/fundase", async (req, res) => {
     if (!module) {
       return res.status(400).json({
         error: "Missing required query param: module",
-        allowed: ["agenda", "vih", "medicinas", "laboratorio", "prioridad"],
+        allowed: ["agenda", "vih", "medicinas", "laboratorio", "prioridad", "sedes"],
       });
     }
     if (!okModule(module)) {
       return res.status(400).json({
         error: "Invalid module",
-        allowed: ["agenda", "vih", "medicinas", "laboratorio", "prioridad"],
+        allowed: ["agenda", "vih", "medicinas", "laboratorio", "prioridad", "sedes"],
       });
     }
 
