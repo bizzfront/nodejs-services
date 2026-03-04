@@ -233,6 +233,7 @@ function likeToRegex(likePattern, { caseSensitive }) {
 
 function splitLikeTerms(likePattern, opts) {
   return normalizeText(likePattern, opts)
+    .replace(/%/g, " ")
     .split(" ")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -250,19 +251,21 @@ function parseCols(colParam) {
 function applyLikeFilter(rows, colNames, likePattern, opts) {
   const { caseSensitive, accentSensitive } = opts;
 
-  if (!String(likePattern).includes("%")) {
-    const terms = splitLikeTerms(likePattern, { caseSensitive, accentSensitive });
-    if (!terms.length) return rows;
+  const hasWildcard = String(likePattern).includes("%");
+  const terms = splitLikeTerms(likePattern, { caseSensitive, accentSensitive });
 
-    // Búsqueda inteligente por términos:
+  const byTerms = (r) => {
+    const normalizedCells = colNames.map((colName) =>
+      normalizeText(r[colName], { caseSensitive, accentSensitive })
+    );
+
     // cada término debe existir parcialmente en al menos una de las columnas indicadas.
-    return rows.filter((r) => {
-      const normalizedCells = colNames.map((colName) =>
-        normalizeText(r[colName], { caseSensitive, accentSensitive })
-      );
+    return terms.every((term) => normalizedCells.some((cell) => cell.includes(term)));
+  };
 
-      return terms.every((term) => normalizedCells.some((cell) => cell.includes(term)));
-    });
+  if (!hasWildcard) {
+    if (!terms.length) return rows;
+    return rows.filter(byTerms);
   }
 
   const rx = likeToRegex(
@@ -271,12 +274,20 @@ function applyLikeFilter(rows, colNames, likePattern, opts) {
     { caseSensitive }
   );
 
-  // OR entre columnas: si alguna columna hace match, la fila queda.
-  return rows.filter((r) => colNames.some((colName) => {
-    const cell = normalizeText(r[colName], { caseSensitive, accentSensitive });
-    // si caseSensitive=false, rx ya trae /i, pero cell ya está lower; no pasa nada.
-    return rx.test(cell);
-  }));
+  return rows.filter((r) => {
+    const regexMatch = colNames.some((colName) => {
+      const cell = normalizeText(r[colName], { caseSensitive, accentSensitive });
+      return rx.test(cell);
+    });
+
+    // Si el patrón tiene varios términos, habilitamos fallback inteligente para
+    // evitar depender de coincidencia exacta de frase cuando hay espacios.
+    if (!regexMatch && terms.length > 1) {
+      return byTerms(r);
+    }
+
+    return regexMatch;
+  });
 }
 
 async function getHeaders(sheets, sheetName) {
