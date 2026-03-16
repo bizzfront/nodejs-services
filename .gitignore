@@ -11,6 +11,9 @@
 /api-service/node_modules/*
 /auth-service/node_modules/*
 
+/auth-service/.env
+/api-service/.env
+
 *.env
 
 # Archivos grandes
