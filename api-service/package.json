@@ -1,0 +1,25 @@
+{
+  "name": "apiService",
+  "version": "1.0.0",
+  "description": "prueba de integracion con chatGPT",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "esm": "^3.2.25",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.13",
+    "openai": "^4.85.4",
+    "pg": "^8.13.3",
+    "python-shell": "^5.0.0",
+    "uuid": "^11.1.0"
+  },
+  "type": "module"
+}

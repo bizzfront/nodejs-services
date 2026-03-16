@@ -6,6 +6,11 @@
 
 /google-spreadsheets-reader-chatgptbot009/spry-bus-452715-n1-8b83733aa94d.json
 
+/otros_archivos/*
+
+/api-service/node_modules/*
+/auth-service/node_modules/*
+
 # Archivos grandes
 *.zip
 *.psd
